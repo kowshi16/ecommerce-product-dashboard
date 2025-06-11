@@ -15,11 +15,17 @@ import { Button } from "./ui/button";
 import ProductForm from "./ProductForm";
 import ProductGrid from "./ProductGrid";
 import SearchFilters from "./SearchFilters";
-import { Filter } from "lucide-react";
+import { Filter, Trash2 } from "lucide-react";
 
 const ProductDashboard = () => {
-    const { products, addProduct, updateProduct, deleteProduct, loading } =
-        useProducts();
+    const {
+        products,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        deleteProducts,
+        loading,
+    } = useProducts();
     const { filteredProducts, filters, updateFilters, clearFilters } =
         useProductFilters(products);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -27,6 +33,11 @@ const ProductDashboard = () => {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<string | null>(null);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
+        new Set()
+    );
+    const [undoBuffer, setUndoBuffer] = useState<Product[]>([]);
+    const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
 
     const handleAddProduct = (productData: Omit<Product, "id">) => {
         addProduct(productData);
@@ -51,15 +62,69 @@ const ProductDashboard = () => {
 
     const confirmDelete = () => {
         if (productToDelete) {
-            deleteProduct(productToDelete);
-            setDeleteConfirmOpen(false);
-            setProductToDelete(null);
+            const productToRemove = products.find((p) => p.id === productToDelete);
+            if (productToRemove) {
+                setUndoBuffer((prev) => [productToRemove, ...prev.slice(0, 4)]);
+                deleteProduct(productToDelete);
+            }
         }
+        setDeleteConfirmOpen(false);
+        setProductToDelete(null);
+        startUndoTimeout();
     };
 
     const cancelDelete = () => {
         setDeleteConfirmOpen(false);
         setProductToDelete(null);
+    };
+
+    const handleBulkDelete = async () => {
+        // setDeleteConfirmOpen(true);
+        const productsToRemove = products.filter((p) => selectedProducts.has(p.id));
+        console.log(
+            "Products to remove:",
+            productsToRemove.map((p) => p.id)
+        );
+        setUndoBuffer((prev) => [...productsToRemove, ...prev.slice(0, 4)]);
+        deleteProducts(Array.from(selectedProducts));
+        setSelectedProducts(new Set());
+        setDeleteConfirmOpen(false);
+        setProductToDelete(null);
+        startUndoTimeout();
+    };
+
+    const toggleProductSelection = (id: string) => {
+        setSelectedProducts((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            console.log("Selected Products:", newSet);
+            return newSet;
+        });
+    };
+
+    const undoDelete = () => {
+        if (undoBuffer.length > 0) {
+            const lastDeleted = undoBuffer[0];
+            addProduct(lastDeleted);
+            setUndoBuffer((prev) => prev.slice(1));
+            if (undoTimeout) {
+                clearTimeout(undoTimeout);
+                startUndoTimeout();
+            }
+        }
+    };
+
+    const startUndoTimeout = () => {
+        if (undoTimeout) clearTimeout(undoTimeout);
+        const timeout = setTimeout(() => {
+            setUndoBuffer([]);
+            setUndoTimeout(null);
+        }, 5000);
+        setUndoTimeout(timeout);
     };
 
     // Calculate stats
@@ -140,23 +205,37 @@ const ProductDashboard = () => {
                             </div>
                         </div>
 
-                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                            <DialogTrigger asChild>
-                                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-3 py-2 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-sm lg:text-base">
-                                    <Plus className="w-4 h-4 lg:w-5 lg:h-5 mr-1 lg:mr-2" />
-                                    <span className="hidden sm:inline">Add Product</span>
-                                    <span className="sm:hidden">Add</span>
+                        <div className="flex flex-col gap-2">
+                            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-3 py-2 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-sm lg:text-base">
+                                        <Plus className="w-4 h-4 lg:w-5 lg:h-5 mr-1 lg:mr-2" />
+                                        <span className="hidden sm:inline">Add Product</span>
+                                        <span className="sm:hidden">Add</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                                            Add New Product
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <ProductForm onSubmit={handleAddProduct} />
+                                </DialogContent>
+                            </Dialog>
+
+                            {selectedProducts.size > 0 && (
+                                <Button
+                                    variant="destructive"
+                                    className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-3 py-2 sm:px-4 sm:py-2 lg:px-6 lg:py-3 text-sm lg:text-base"
+                                    onClick={async () => await handleBulkDelete()} // Ensure async handling
+                                >
+                                    <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 mr-1 lg:mr-2" />
+                                    <span className="hidden sm:inline">Delete Selected</span>
+                                    <span className="sm:hidden">Delete</span>
                                 </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                                        Add New Product
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <ProductForm onSubmit={handleAddProduct} />
-                            </DialogContent>
-                        </Dialog>
+                            )}
+                        </div>
                     </div>
 
                     {/* Filter Results Summary */}
@@ -175,6 +254,16 @@ const ProductDashboard = () => {
                             </p>
                             {filteredProducts.length !== products.length && (
                                 <div className="h-1 w-1 bg-muted-foreground rounded-full"></div>
+                            )}
+                            {undoBuffer.length > 0 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={undoDelete}
+                                    className="ml-2 text-sm"
+                                >
+                                    Undo Last Delete
+                                </Button>
                             )}
                         </div>
                         {/* Toggle Filters Button for Mobile */}
@@ -208,6 +297,8 @@ const ProductDashboard = () => {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             loading={loading}
+                            selectedProducts={selectedProducts}
+                            onToggleSelection={toggleProductSelection}
                         />
                     </div>
                 </div>
@@ -244,15 +335,21 @@ const ProductDashboard = () => {
                     </DialogHeader>
                     <div className="py-4">
                         <p className="text-sm text-muted-foreground">
-                            Are you sure you want to delete this product? This action cannot
-                            be undone.
+                            {selectedProducts.size > 0
+                                ? `Are you sure you want to delete ${selectedProducts.size} selected product(s)?`
+                                : "Are you sure you want to delete this product? This action cannot be undone."}
                         </p>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={cancelDelete} className="mr-2">
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
+                        <Button
+                            variant="destructive"
+                            onClick={
+                                selectedProducts.size > 0 ? handleBulkDelete : confirmDelete
+                            }
+                        >
                             Confirm Delete
                         </Button>
                     </DialogFooter>

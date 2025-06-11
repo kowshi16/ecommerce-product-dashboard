@@ -35,11 +35,16 @@ export const useProducts = () => {
         setProducts(prev => prev.filter(product => product.id !== id));
     }, [setProducts]);
 
+    const deleteProducts = useCallback((ids: string[]) => {
+        setProducts(prev => prev.filter(product => !ids.includes(product.id)));
+    }, [setProducts]);
+
     return {
         products,
         addProduct,
         updateProduct,
         deleteProduct,
+        deleteProducts,
         loading,
     };
 };

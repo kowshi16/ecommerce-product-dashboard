@@ -8,9 +8,11 @@ interface ProductGridProps {
     onEdit: (product: Product) => void;
     onDelete: (id: string) => void;
     loading: boolean;
+    selectedProducts: Set<string>;
+    onToggleSelection: (id: string) => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, onEdit, onDelete, loading }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, onEdit, onDelete, loading, selectedProducts, onToggleSelection, }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -48,6 +50,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onEdit, onDelete, l
                     product={product}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    selected={selectedProducts.has(product.id)}
+                    onToggleSelection={onToggleSelection}
                 />
             ))}
         </div>
