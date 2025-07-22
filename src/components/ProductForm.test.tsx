@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import ProductForm from './ProductForm';
 import { jest } from '@jest/globals';
 
@@ -26,15 +26,6 @@ jest.mock('../utils/validation', () => ({
 
 describe('ProductForm Tests', () => {
   const mockOnSubmit = jest.fn();
-  const initialData = {
-    id: '1',
-    name: 'Old Product',
-    price: 5.99,
-    category: 'Books',
-    stock: 3,
-    description: 'Old description',
-    imageUrl: 'https://example.com/old.jpg',
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();

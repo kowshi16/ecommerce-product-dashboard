@@ -3,7 +3,6 @@ import { Edit, Trash2, Eye, Heart } from "lucide-react";
 import { formatCurrency } from "../utils/formatters";
 import type { Product } from "../types/Product";
 import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
 
 interface ProductCardProps {
     product: Product;
@@ -14,7 +13,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = React.memo(
-    ({ product, onEdit, onDelete, selected, onToggleSelection }) => {
+    ({ product, onEdit, onDelete }) => {
         const [imageError, setImageError] = useState(false);
         const [isHovered, setIsHovered] = useState(false);
         const placeholderImage = "/image-placeholder.jpg";
@@ -176,7 +175,7 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(
                             Delete
                         </Button>
                     </div>
-                    <div className="flex gap-2 items-center border border-gray-100 bg-white rounded-lg shadow-sm p-2">
+                    {/* <div className="flex gap-2 items-center border border-gray-100 bg-white rounded-lg shadow-sm p-2">
                         <div className="flex-1 flex items-center justify-between px-3 py-2 bg-gray-50 rounded-md hover:bg-red-50 hover:border-red-300 transition-all duration-200 group">
                             <div className="flex items-center">
                                 <Trash2 className="w-5 h-5 mr-3 text-red-600 group-hover:text-red-700 transition-colors duration-200" />
@@ -188,7 +187,7 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(
                                 className="text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 rounded transition-all duration-200 hover:bg-blue-50"
                             />
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Decorative corner accent */}
